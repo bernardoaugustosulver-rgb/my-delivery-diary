@@ -1,12 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike, MessageCircle } from "lucide-react";
+import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike, MessageCircle, History, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useStore, brl, fmtDate, today, uid, type Estab, type Data } from "@/lib/store";
+import { useStore, brl, fmtDate, today, uid, type Estab, type Data, type Archive } from "@/lib/store";
+
+// Days with any count or note for one establishment, newest first.
+const estDays = (daily: Data["daily"], notes: Data["notes"], estId: string) =>
+  Object.keys(daily)
+    .filter((d) => Object.keys(daily[d]?.[estId] ?? {}).length || Object.keys(notes[d]?.[estId] ?? {}).length)
+    .sort()
+    .reverse();
+
+// WhatsApp message: estab name, days descending, deliveries, notes, grand total.
+const summaryText = (name: string, daily: Data["daily"], notes: Data["notes"], e: Estab) => {
+  const days = estDays(daily, notes, e.id);
+  if (days.length === 0) return "";
+  let grandTotal = 0;
+  const parts = days.map((d) => {
+    const counts = daily[d]?.[e.id] ?? {};
+    const dayNotes = notes[d]?.[e.id] ?? {};
+    const lines = Object.entries(counts).map(([bid, n]) => {
+      const b = e.bairros.find((x) => x.id === bid);
+      return `${n}x ${b?.name ?? "Bairro removido"}`;
+    });
+    Object.entries(dayNotes).forEach(([bid, t]) => {
+      const b = e.bairros.find((x) => x.id === bid);
+      lines.push(`📝 ${b?.name ?? "Bairro removido"}: ${t}`);
+    });
+    let total = 0;
+    Object.entries(counts).forEach(([bid, n]) => {
+      const b = e.bairros.find((x) => x.id === bid);
+      total += n * (b?.price ?? 0);
+    });
+    grandTotal += total;
+    return [fmtDate(d), ...lines].join("\n");
+  });
+  return [name, "", ...parts.flatMap((p, i) => (i > 0 ? ["----------", ...p.split("\n")] : p.split("\n"))), "", `Total = ${brl(grandTotal)}`].join("\n");
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,13 +55,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { data, change, resetWeek, setNote, setEstabs } = useStore();
+  const { data, change, resetWeek, setNote, setEstabs, deleteArchive } = useStore();
   const [tab, setTab] = useState<string>("");
   const [cfg, setCfg] = useState(false);
   const [resumo, setResumo] = useState<string | null>(null);
   const [note, setNoteOpen] = useState<{ est: string; b: string; name: string } | null>(null);
   const [noteText, setNoteText] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [hist, setHist] = useState(false);
 
   if (!data) return <div className="min-h-screen bg-background" />;
   const active = data.estabs.find((e) => e.id === tab)?.id ?? data.estabs[0]?.id ?? "";
@@ -103,7 +138,7 @@ function Index() {
       <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
         <DialogContent>
           <DialogHeader><DialogTitle>Resetar semana?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Isso vai zerar todos os contadores e apagar todo o histórico do resumo. Deseja continuar?</p>
+          <p className="text-sm text-muted-foreground">Isso vai zerar todos os contadores. O resumo atual fica salvo no histórico anterior (na engrenagem) até o próximo reset. Deseja continuar?</p>
           <DialogFooter className="gap-2">
             <Button variant="secondary" onClick={() => setConfirmReset(false)}>Não</Button>
             <Button variant="destructive" onClick={() => { resetWeek(); setConfirmReset(false); }}>Sim, resetar</Button>
@@ -120,42 +155,49 @@ function Index() {
       </Dialog>
 
       <ResumoDialog data={data} estId={resumo} onClose={() => setResumo(null)} />
-      <ConfigDialog open={cfg} onClose={() => setCfg(false)} estabs={data.estabs} onSave={setEstabs} />
+      <ConfigDialog open={cfg} onClose={() => setCfg(false)} estabs={data.estabs} onSave={setEstabs} onOpenHistory={() => { setCfg(false); setHist(true); }} />
+      <HistoryDialog open={hist} onClose={() => setHist(false)} estabs={data.estabs} archives={data.archives ?? []} onDelete={deleteArchive} />
+    </div>
+  );
+}
+
+// Day cards shared by the weekly Resumo and the archived history view.
+function DayList({ daily, notes, e, estId }: { daily: Data["daily"]; notes: Data["notes"]; e: Estab; estId: string }) {
+  const days = estDays(daily, notes, estId);
+  return (
+    <div className="space-y-3">
+      {days.map((d) => {
+        const counts = daily[d]?.[estId] ?? {};
+        const dayNotes = notes[d]?.[estId] ?? {};
+        let total = 0;
+        const rows = Object.entries(counts).map(([bid, n]) => {
+          const b = e.bairros.find((x) => x.id === bid);
+          const v = n * (b?.price ?? 0); total += v;
+          return { bid, label: `${n}x ${b?.name ?? "Bairro removido"}`, v };
+        });
+        return (
+          <div key={d} className="rounded-xl border bg-secondary p-3">
+            <div className="mb-2 flex justify-between font-bold"><span>{fmtDate(d)}</span><span className="text-success">{brl(total)}</span></div>
+            {rows.map((r) => (
+              <div key={r.bid} className="flex justify-between text-sm"><span>{r.label}</span><span>{brl(r.v)}</span></div>
+            ))}
+            {Object.entries(dayNotes).map(([bid, t]) => (
+              <p key={bid} className="mt-2 rounded-lg bg-accent p-2 text-xs">📝 <b>{e.bairros.find((x) => x.id === bid)?.name}:</b> {t}</p>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | null; onClose: () => void }) {
   const e = data.estabs.find((x) => x.id === estId);
-  const days = Object.keys(data.daily).filter((d) => estId && (Object.keys(data.daily[d]![estId] ?? {}).length || Object.keys(data.notes[d]?.[estId] ?? {}).length)).sort().reverse();
-
-  const whatsappText = () => {
-    if (!e) return "";
-    let grandTotal = 0;
-    const parts = days.map((d) => {
-      const counts = data.daily[d]![e.id] ?? {};
-      const notes = data.notes[d]?.[e.id] ?? {};
-      const lines = Object.entries(counts).map(([bid, n]) => {
-        const b = e.bairros.find((x) => x.id === bid);
-        return `${n}x ${b?.name ?? "Bairro removido"}`;
-      });
-      Object.entries(notes).forEach(([bid, t]) => {
-        const b = e.bairros.find((x) => x.id === bid);
-        lines.push(`📝 ${b?.name ?? "Bairro removido"}: ${t}`);
-      });
-      let total = 0;
-      Object.entries(counts).forEach(([bid, n]) => {
-        const b = e.bairros.find((x) => x.id === bid);
-        total += n * (b?.price ?? 0);
-      });
-      grandTotal += total;
-      return [fmtDate(d), ...lines].join("\n");
-    });
-    return [e.name, "", ...parts.flatMap((p, i) => (i > 0 ? ["----------", ...p.split("\n")] : p.split("\n"))), "", `Total = ${brl(grandTotal)}`].join("\n");
-  };
+  const days = e ? estDays(data.daily, data.notes, e.id) : [];
 
   const share = () => {
-    const text = whatsappText();
+    if (!e) return;
+    const text = summaryText(e.name, data.daily, data.notes, e);
     if (!text) return;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
@@ -165,29 +207,7 @@ function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | nu
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Resumo · {e?.name}</DialogTitle></DialogHeader>
         {days.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma entrega registrada ainda.</p>}
-        <div className="space-y-3">
-          {e && days.map((d) => {
-            const counts = data.daily[d]![e.id] ?? {};
-            const notes = data.notes[d]?.[e.id] ?? {};
-            let total = 0;
-            const rows = Object.entries(counts).map(([bid, n]) => {
-              const b = e.bairros.find((x) => x.id === bid);
-              const v = n * (b?.price ?? 0); total += v;
-              return { bid, label: `${n}x ${b?.name ?? "Bairro removido"}`, v };
-            });
-            return (
-              <div key={d} className="rounded-xl border bg-secondary p-3">
-                <div className="mb-2 flex justify-between font-bold"><span>{fmtDate(d)}</span><span className="text-success">{brl(total)}</span></div>
-                {rows.map((r) => (
-                  <div key={r.bid} className="flex justify-between text-sm"><span>{r.label}</span><span>{brl(r.v)}</span></div>
-                ))}
-                {Object.entries(notes).map(([bid, t]) => (
-                  <p key={bid} className="mt-2 rounded-lg bg-accent p-2 text-xs">📝 <b>{e.bairros.find((x) => x.id === bid)?.name}:</b> {t}</p>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+        {e && <DayList daily={data.daily} notes={data.notes} e={e} estId={e.id} />}
         {days.length > 0 && (
           <DialogFooter className="flex-row gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>Fechar</Button>
@@ -196,6 +216,93 @@ function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | nu
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Past weeks: each weekly reset archives the current daily history here until the next reset.
+function HistoryDialog({ open, onClose, estabs, archives, onDelete }: {
+  open: boolean; onClose: () => void; estabs: Estab[]; archives: Archive[]; onDelete: (id: string) => void;
+}) {
+  const [sel, setSel] = useState<string | null>(null);
+  const [estId, setEstId] = useState("");
+  const [delId, setDelId] = useState<string | null>(null);
+  const active = estabs.find((x) => x.id === estId)?.id ?? estabs[0]?.id ?? "";
+  const arc = archives.find((a) => a.id === sel) ?? null;
+
+  const label = (a: Archive) => {
+    const dates = Object.keys(a.daily).sort();
+    const from = dates.length ? fmtDate(dates[0]!) : fmtDate(a.savedAt);
+    return `Semana de ${from} — arquivada em ${fmtDate(a.savedAt)}`;
+  };
+
+  const shareArchive = () => {
+    if (!arc) return;
+    const e = estabs.find((x) => x.id === active);
+    if (!e) return;
+    const text = summaryText(e.name, arc.daily, arc.notes, e);
+    if (!text) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={(o) => { if (!o) { setSel(null); onClose(); } }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          {!arc ? (
+            <>
+              <DialogHeader><DialogTitle>Histórico anterior</DialogTitle></DialogHeader>
+              {archives.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhuma semana arquivada ainda. Ao tocar em "Resetar Semana", o resumo atual fica salvo aqui.</p>
+              )}
+              <div className="space-y-2">
+                {archives.map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 rounded-xl border bg-secondary p-3">
+                    <button className="min-w-0 flex-1 text-left" onClick={() => { setSel(a.id); setEstId(""); }}>
+                      <p className="truncate font-bold">{label(a)}</p>
+                      <p className="text-xs text-muted-foreground">Toque para ver o resumo completo</p>
+                    </button>
+                    <Button variant="ghost" size="icon" aria-label="Apagar arquivo"
+                      onClick={() => setDelId(a.id)}>
+                      <Trash2 className="text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <DialogFooter><Button className="w-full" onClick={onClose}>Fechar</Button></DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader><DialogTitle>{label(arc)}</DialogTitle></DialogHeader>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {estabs.map((x) => (
+                  <button key={x.id} onClick={() => setEstId(x.id)}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${x.id === active ? "bg-primary text-primary-foreground" : "bg-tab text-tab-foreground opacity-60"}`}>
+                    {x.name}
+                  </button>
+                ))}
+              </div>
+              {estabs.find((x) => x.id === active) && (
+                <DayList daily={arc.daily} notes={arc.notes} e={estabs.find((x) => x.id === active)!} estId={active} />
+              )}
+              <DialogFooter className="flex-row gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setSel(null)}><ArrowLeft /> Voltar</Button>
+                <Button className="flex-1" onClick={shareArchive}><MessageCircle /> WhatsApp</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!delId} onOpenChange={(o) => !o && setDelId(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Apagar este arquivo?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Essa semana arquivada será apagada para sempre. Deseja continuar?</p>
+          <DialogFooter className="gap-2">
+            <Button variant="secondary" onClick={() => setDelId(null)}>Não</Button>
+            <Button variant="destructive" onClick={() => { if (delId) onDelete(delId); setDelId(null); setSel(null); }}>Sim, apagar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
