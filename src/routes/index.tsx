@@ -245,60 +245,64 @@ function HistoryDialog({ open, onClose, estabs, archives, onDelete }: {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { setSel(null); onClose(); } }}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        {!arc ? (
-          <>
-            <DialogHeader><DialogTitle>Histórico anterior</DialogTitle></DialogHeader>
-            {archives.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhuma semana arquivada ainda. Ao tocar em "Resetar Semana", o resumo atual fica salvo aqui.</p>
-            )}
-            <div className="space-y-2">
-              {archives.map((a) => (
-                <div key={a.id} className="flex items-center gap-2 rounded-xl border bg-secondary p-3">
-                  <button className="min-w-0 flex-1 text-left" onClick={() => { setSel(a.id); setEstId(""); }}>
-                    <p className="truncate font-bold">{label(a)}</p>
-                    <p className="text-xs text-muted-foreground">Toque para ver o resumo completo</p>
+    <>
+      <Dialog open={open} onOpenChange={(o) => { if (!o) { setSel(null); onClose(); } }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          {!arc ? (
+            <>
+              <DialogHeader><DialogTitle>Histórico anterior</DialogTitle></DialogHeader>
+              {archives.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhuma semana arquivada ainda. Ao tocar em "Resetar Semana", o resumo atual fica salvo aqui.</p>
+              )}
+              <div className="space-y-2">
+                {archives.map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 rounded-xl border bg-secondary p-3">
+                    <button className="min-w-0 flex-1 text-left" onClick={() => { setSel(a.id); setEstId(""); }}>
+                      <p className="truncate font-bold">{label(a)}</p>
+                      <p className="text-xs text-muted-foreground">Toque para ver o resumo completo</p>
+                    </button>
+                    <Button variant="ghost" size="icon" aria-label="Apagar arquivo"
+                      onClick={() => setDelId(a.id)}>
+                      <Trash2 className="text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <DialogFooter><Button className="w-full" onClick={onClose}>Fechar</Button></DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader><DialogTitle>{label(arc)}</DialogTitle></DialogHeader>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {estabs.map((x) => (
+                  <button key={x.id} onClick={() => setEstId(x.id)}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${x.id === active ? "bg-primary text-primary-foreground" : "bg-tab text-tab-foreground opacity-60"}`}>
+                    {x.name}
                   </button>
-                  <Button variant="ghost" size="icon" aria-label="Apagar arquivo"
-                    onClick={() => setDelId(a.id)}>
-                    <Trash2 className="text-destructive" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-            <DialogFooter><Button className="w-full" onClick={onClose}>Fechar</Button></DialogFooter>
-          </>
-        ) : (
-          <>
-            <DialogHeader><DialogTitle>{label(arc)}</DialogTitle></DialogHeader>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {estabs.map((x) => (
-                <button key={x.id} onClick={() => setEstId(x.id)}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${x.id === active ? "bg-primary text-primary-foreground" : "bg-tab text-tab-foreground opacity-60"}`}>
-                  {x.name}
-                </button>
-              ))}
-            </div>
-            <DayList daily={arc.daily} notes={arc.notes} e={estabs.find((x) => x.id === active)!} estId={active} />
-            <DialogFooter className="flex-row gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setSel(null)}><ArrowLeft /> Voltar</Button>
-              <Button className="flex-1" onClick={shareArchive}><MessageCircle /> WhatsApp</Button>
-            </DialogFooter>
-          </>
-        )}
-      </DialogContent>
-      <Dialog open={confirmDel} onOpenChange={setConfirmDel}>
+                ))}
+              </div>
+              {estabs.find((x) => x.id === active) && (
+                <DayList daily={arc.daily} notes={arc.notes} e={estabs.find((x) => x.id === active)!} estId={active} />
+              )}
+              <DialogFooter className="flex-row gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setSel(null)}><ArrowLeft /> Voltar</Button>
+                <Button className="flex-1" onClick={shareArchive}><MessageCircle /> WhatsApp</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!delId} onOpenChange={(o) => !o && setDelId(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Apagar este arquivo?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Essa semana arquivada será apagada para sempre. Deseja continuar?</p>
           <DialogFooter className="gap-2">
-            <Button variant="secondary" onClick={() => setConfirmDel(false)}>Não</Button>
-            <Button variant="destructive" onClick={() => { if (arc) { onDelete(arc.id); setSel(null); } setConfirmDel(false); }}>Sim, apagar</Button>
+            <Button variant="secondary" onClick={() => setDelId(null)}>Não</Button>
+            <Button variant="destructive" onClick={() => { if (delId) onDelete(delId); setDelId(null); setSel(null); }}>Sim, apagar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   );
 }
 
