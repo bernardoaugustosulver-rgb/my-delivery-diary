@@ -55,13 +55,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { data, change, resetWeek, setNote, setEstabs } = useStore();
+  const { data, change, resetWeek, setNote, setEstabs, deleteArchive } = useStore();
   const [tab, setTab] = useState<string>("");
   const [cfg, setCfg] = useState(false);
   const [resumo, setResumo] = useState<string | null>(null);
   const [note, setNoteOpen] = useState<{ est: string; b: string; name: string } | null>(null);
   const [noteText, setNoteText] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [hist, setHist] = useState(false);
 
   if (!data) return <div className="min-h-screen bg-background" />;
   const active = data.estabs.find((e) => e.id === tab)?.id ?? data.estabs[0]?.id ?? "";
@@ -137,7 +138,7 @@ function Index() {
       <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
         <DialogContent>
           <DialogHeader><DialogTitle>Resetar semana?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Isso vai zerar todos os contadores e apagar todo o histórico do resumo. Deseja continuar?</p>
+          <p className="text-sm text-muted-foreground">Isso vai zerar todos os contadores. O resumo atual fica salvo no histórico anterior (na engrenagem) até o próximo reset. Deseja continuar?</p>
           <DialogFooter className="gap-2">
             <Button variant="secondary" onClick={() => setConfirmReset(false)}>Não</Button>
             <Button variant="destructive" onClick={() => { resetWeek(); setConfirmReset(false); }}>Sim, resetar</Button>
@@ -154,7 +155,8 @@ function Index() {
       </Dialog>
 
       <ResumoDialog data={data} estId={resumo} onClose={() => setResumo(null)} />
-      <ConfigDialog open={cfg} onClose={() => setCfg(false)} estabs={data.estabs} onSave={setEstabs} />
+      <ConfigDialog open={cfg} onClose={() => setCfg(false)} estabs={data.estabs} onSave={setEstabs} onOpenHistory={() => { setCfg(false); setHist(true); }} />
+      <HistoryDialog open={hist} onClose={() => setHist(false)} estabs={data.estabs} archives={data.archives ?? []} onDelete={deleteArchive} />
     </div>
   );
 }
