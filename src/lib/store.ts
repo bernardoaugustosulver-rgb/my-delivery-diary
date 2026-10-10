@@ -10,7 +10,7 @@ export type Data = {
   notes: Record<string, Record<string, Record<string, string>>>;
 };
 
-const KEY = "motoboy-data-v1";
+const KEY = "motoboy-data-v2";
 export const uid = () => Math.random().toString(36).slice(2, 10);
 export const today = () => {
   const d = new Date();
@@ -19,18 +19,13 @@ export const today = () => {
 export const fmtDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 export const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const est = (name: string): Estab => ({ id: name.toLowerCase().replace(/\s+/g, "-"), name, bairros: [] });
+
 const seed: Data = {
   estabs: [
-    { id: "batisti", name: "Batisti", bairros: [
-      { id: uid(), name: "Ilha da Figueira", price: 10 },
-      { id: uid(), name: "Centro", price: 12 },
-      { id: uid(), name: "Vila Lalau", price: 8 },
-    ] },
-    { id: "american", name: "American", bairros: [
-      { id: uid(), name: "Centro", price: 9 },
-      { id: uid(), name: "Czerniewicz", price: 11 },
-    ] },
-  ],
+    "American", "Batisti", "Jet Frango", "Pastini", "Santly Sushi", "Society",
+    "Dom Vicente", "Seu Maze", "Giac San", "Manu Doces", "Sabor da Casa", "Casa do Sushi",
+  ].map(est),
   counters: {}, daily: {}, notes: {},
 };
 
