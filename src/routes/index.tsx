@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike } from "lucide-react";
+import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -117,6 +117,38 @@ function Index() {
 function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | null; onClose: () => void }) {
   const e = data.estabs.find((x) => x.id === estId);
   const days = Object.keys(data.daily).filter((d) => estId && (Object.keys(data.daily[d]![estId] ?? {}).length || Object.keys(data.notes[d]?.[estId] ?? {}).length)).sort().reverse();
+
+  const whatsappText = () => {
+    if (!e) return "";
+    let grandTotal = 0;
+    const parts = days.map((d) => {
+      const counts = data.daily[d]![e.id] ?? {};
+      const notes = data.notes[d]?.[e.id] ?? {};
+      const lines = Object.entries(counts).map(([bid, n]) => {
+        const b = e.bairros.find((x) => x.id === bid);
+        return `${n}x ${b?.name ?? "Bairro removido"}`;
+      });
+      Object.entries(notes).forEach(([bid, t]) => {
+        const b = e.bairros.find((x) => x.id === bid);
+        lines.push(`📝 ${b?.name ?? "Bairro removido"}: ${t}`);
+      });
+      let total = 0;
+      Object.entries(counts).forEach(([bid, n]) => {
+        const b = e.bairros.find((x) => x.id === bid);
+        total += n * (b?.price ?? 0);
+      });
+      grandTotal += total;
+      return [fmtDate(d), ...lines].join("\n");
+    });
+    return [e.name, "", ...parts.flatMap((p, i) => (i > 0 ? ["----------", ...p.split("\n")] : p.split("\n"))), "", `Total = ${brl(grandTotal)}`].join("\n");
+  };
+
+  const share = () => {
+    const text = whatsappText();
+    if (!text) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
   return (
     <Dialog open={!!estId} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
@@ -145,6 +177,12 @@ function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | nu
             );
           })}
         </div>
+        {days.length > 0 && (
+          <DialogFooter className="flex-row gap-2">
+            <Button variant="outline" className="flex-1" onClick={onClose}>Fechar</Button>
+            <Button className="flex-1" onClick={share}><MessageCircle /> WhatsApp</Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
