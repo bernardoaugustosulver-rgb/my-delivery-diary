@@ -1,12 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike, MessageCircle } from "lucide-react";
+import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike, MessageCircle, History, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useStore, brl, fmtDate, today, uid, type Estab, type Data } from "@/lib/store";
+import { useStore, brl, fmtDate, today, uid, type Estab, type Data, type Archive } from "@/lib/store";
+
+// Days with any count or note for one establishment, newest first.
+const estDays = (daily: Data["daily"], notes: Data["notes"], estId: string) =>
+  Object.keys(daily)
+    .filter((d) => Object.keys(daily[d]?.[estId] ?? {}).length || Object.keys(notes[d]?.[estId] ?? {}).length)
+    .sort()
+    .reverse();
+
+// WhatsApp message: estab name, days descending, deliveries, notes, grand total.
+const summaryText = (name: string, daily: Data["daily"], notes: Data["notes"], e: Estab) => {
+  const days = estDays(daily, notes, e.id);
+  if (days.length === 0) return "";
+  let grandTotal = 0;
+  const parts = days.map((d) => {
+    const counts = daily[d]?.[e.id] ?? {};
+    const dayNotes = notes[d]?.[e.id] ?? {};
+    const lines = Object.entries(counts).map(([bid, n]) => {
+      const b = e.bairros.find((x) => x.id === bid);
+      return `${n}x ${b?.name ?? "Bairro removido"}`;
+    });
+    Object.entries(dayNotes).forEach(([bid, t]) => {
+      const b = e.bairros.find((x) => x.id === bid);
+      lines.push(`📝 ${b?.name ?? "Bairro removido"}: ${t}`);
+    });
+    let total = 0;
+    Object.entries(counts).forEach(([bid, n]) => {
+      const b = e.bairros.find((x) => x.id === bid);
+      total += n * (b?.price ?? 0);
+    });
+    grandTotal += total;
+    return [fmtDate(d), ...lines].join("\n");
+  });
+  return [name, "", ...parts.flatMap((p, i) => (i > 0 ? ["----------", ...p.split("\n")] : p.split("\n"))), "", `Total = ${brl(grandTotal)}`].join("\n");
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
