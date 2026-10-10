@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike } from "lucide-react";
+import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
