@@ -173,7 +173,7 @@ function ConfigDialog({ open, onClose, estabs, onSave }: { open: boolean; onClos
               {e.bairros.map((b, j) => (
                 <div key={b.id} className="flex gap-2">
                   <Input value={b.name} placeholder="Bairro" onChange={(ev) => edit((d) => { d[i]!.bairros[j]!.name = ev.target.value; })} />
-                  <Input className="w-24" type="number" inputMode="decimal" step="0.5" value={b.price}
+                  <Input className="w-24" type="number" inputMode="decimal" step="0.5" placeholder="0" value={b.price || ""}
                     onChange={(ev) => edit((d) => { d[i]!.bairros[j]!.price = Number(ev.target.value) || 0; })} />
                   <Button variant="ghost" size="icon" onClick={() => edit((d) => { d[i]!.bairros.splice(j, 1); })}><Trash2 /></Button>
                 </div>
@@ -182,7 +182,7 @@ function ConfigDialog({ open, onClose, estabs, onSave }: { open: boolean; onClos
             </div>
           ))}
         </div>
-        <DialogFooter><Button onClick={() => { onSave(draft); onClose(); }}>Salvar</Button></DialogFooter>
+        <DialogFooter><Button className="w-full" onClick={onClose}>Concluir</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
