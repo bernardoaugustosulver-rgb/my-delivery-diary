@@ -124,20 +124,23 @@ function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | nu
     const parts = days.map((d) => {
       const counts = data.daily[d]![e.id] ?? {};
       const notes = data.notes[d]?.[e.id] ?? {};
-      let total = 0;
       const lines = Object.entries(counts).map(([bid, n]) => {
         const b = e.bairros.find((x) => x.id === bid);
-        const v = n * (b?.price ?? 0); total += v;
         return `${n}x ${b?.name ?? "Bairro removido"}`;
       });
       Object.entries(notes).forEach(([bid, t]) => {
         const b = e.bairros.find((x) => x.id === bid);
         lines.push(`📝 ${b?.name ?? "Bairro removido"}: ${t}`);
       });
+      let total = 0;
+      Object.entries(counts).forEach(([bid, n]) => {
+        const b = e.bairros.find((x) => x.id === bid);
+        total += n * (b?.price ?? 0);
+      });
       grandTotal += total;
-      return [fmtDate(d), ...lines, brl(total)].join("\n");
+      return [fmtDate(d), ...lines].join("\n");
     });
-    return [e.name, "", ...parts.flatMap((p, i) => (i > 0 ? ["----------", ...p.split("\n")] : p.split("\n"))), "", "", `Total = ${brl(grandTotal)}`].join("\n");
+    return [e.name, "", ...parts.flatMap((p, i) => (i > 0 ? ["----------", ...p.split("\n")] : p.split("\n"))), "", `Total = ${brl(grandTotal)}`].join("\n");
   };
 
   const share = () => {
