@@ -10,7 +10,7 @@ export type Data = {
   notes: Record<string, Record<string, Record<string, string>>>;
 };
 
-const KEY = "motoboy-data-v1";
+const KEY = "motoboy-data-v2";
 export const uid = () => Math.random().toString(36).slice(2, 10);
 export const today = () => {
   const d = new Date();
