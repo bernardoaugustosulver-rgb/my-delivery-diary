@@ -27,6 +27,7 @@ function Index() {
   const [resumo, setResumo] = useState<string | null>(null);
   const [note, setNoteOpen] = useState<{ est: string; b: string; name: string } | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [confirmReset, setConfirmReset] = useState(false);
 
   if (!data) return <div className="min-h-screen bg-background" />;
   const active = data.estabs.find((e) => e.id === tab)?.id ?? data.estabs[0]?.id ?? "";
@@ -94,11 +95,21 @@ function Index() {
       )}
 
       <div className="fixed inset-x-0 bottom-0 mx-auto max-w-xl bg-background/90 p-4 backdrop-blur">
-        <Button variant="destructive" className="h-12 w-full text-base font-bold"
-          onClick={() => confirm("Zerar todos os contadores da semana? O histórico diário será mantido.") && resetWeek()}>
+        <Button variant="destructive" className="h-12 w-full text-base font-bold" onClick={() => setConfirmReset(true)}>
           <RotateCcw /> Resetar Semana
         </Button>
       </div>
+
+      <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Resetar semana?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Isso vai zerar todos os contadores e apagar todo o histórico do resumo. Deseja continuar?</p>
+          <DialogFooter className="gap-2">
+            <Button variant="secondary" onClick={() => setConfirmReset(false)}>Não</Button>
+            <Button variant="destructive" onClick={() => { resetWeek(); setConfirmReset(false); }}>Sim, resetar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!note} onOpenChange={(o) => !o && setNoteOpen(null)}>
         <DialogContent>
