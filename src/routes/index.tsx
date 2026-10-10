@@ -116,7 +116,7 @@ function Index() {
 
 function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | null; onClose: () => void }) {
   const e = data.estabs.find((x) => x.id === estId);
-  const days = Object.keys(data.daily).filter((d) => estId && (Object.keys(data.daily[d][estId] ?? {}).length || Object.keys(data.notes[d]?.[estId] ?? {}).length)).sort().reverse();
+  const days = Object.keys(data.daily).filter((d) => estId && (Object.keys(data.daily[d]![estId] ?? {}).length || Object.keys(data.notes[d]?.[estId] ?? {}).length)).sort().reverse();
   return (
     <Dialog open={!!estId} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
@@ -124,7 +124,7 @@ function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | nu
         {days.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma entrega registrada ainda.</p>}
         <div className="space-y-3">
           {e && days.map((d) => {
-            const counts = data.daily[d][e.id] ?? {};
+            const counts = data.daily[d]![e.id] ?? {};
             const notes = data.notes[d]?.[e.id] ?? {};
             let total = 0;
             const rows = Object.entries(counts).map(([bid, n]) => {
@@ -166,18 +166,18 @@ function ConfigDialog({ open, onClose, estabs, onSave }: { open: boolean; onClos
           {draft.map((e, i) => (
             <div key={e.id} className="space-y-2 rounded-xl border bg-secondary p-3">
               <div className="flex gap-2">
-                <Input className="font-bold" value={e.name} onChange={(ev) => edit((d) => { d[i].name = ev.target.value; })} />
+                <Input className="font-bold" value={e.name} onChange={(ev) => edit((d) => { d[i]!.name = ev.target.value; })} />
                 <Button variant="ghost" size="icon" onClick={() => confirm(`Remover ${e.name}?`) && edit((d) => { d.splice(i, 1); })}><Trash2 className="text-destructive" /></Button>
               </div>
               {e.bairros.map((b, j) => (
                 <div key={b.id} className="flex gap-2">
-                  <Input value={b.name} placeholder="Bairro" onChange={(ev) => edit((d) => { d[i].bairros[j].name = ev.target.value; })} />
+                  <Input value={b.name} placeholder="Bairro" onChange={(ev) => edit((d) => { d[i]!.bairros[j]!.name = ev.target.value; })} />
                   <Input className="w-24" type="number" inputMode="decimal" step="0.5" value={b.price}
-                    onChange={(ev) => edit((d) => { d[i].bairros[j].price = Number(ev.target.value) || 0; })} />
-                  <Button variant="ghost" size="icon" onClick={() => edit((d) => { d[i].bairros.splice(j, 1); })}><Trash2 /></Button>
+                    onChange={(ev) => edit((d) => { d[i]!.bairros[j]!.price = Number(ev.target.value) || 0; })} />
+                  <Button variant="ghost" size="icon" onClick={() => edit((d) => { d[i]!.bairros.splice(j, 1); })}><Trash2 /></Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={() => edit((d) => { d[i].bairros.push({ id: uid(), name: "", price: 0 }); })}><Plus /> Bairro</Button>
+              <Button variant="outline" size="sm" onClick={() => edit((d) => { d[i]!.bairros.push({ id: uid(), name: "", price: 0 }); })}><Plus /> Bairro</Button>
             </div>
           ))}
         </div>
