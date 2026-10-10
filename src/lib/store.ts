@@ -2,12 +2,17 @@ import { useEffect, useState, useCallback } from "react";
 
 export type Bairro = { id: string; name: string; price: number };
 export type Estab = { id: string; name: string; bairros: Bairro[] };
+type Daily = Record<string, Record<string, Record<string, number>>>;
+type Notes = Record<string, Record<string, Record<string, string>>>;
 // daily[date][estId][bairroId] = count ; notes[date][estId][bairroId] = text
+// archives: snapshot of daily+notes saved at each weekly reset
+export type Archive = { id: string; savedAt: string; daily: Daily; notes: Notes };
 export type Data = {
   estabs: Estab[];
   counters: Record<string, Record<string, number>>;
-  daily: Record<string, Record<string, Record<string, number>>>;
-  notes: Record<string, Record<string, Record<string, string>>>;
+  daily: Daily;
+  notes: Notes;
+  archives?: Archive[];
 };
 
 const KEY = "motoboy-data-v2";
@@ -26,7 +31,7 @@ const seed: Data = {
     "American", "Batisti", "Jet Frango", "Pastini", "Santly Sushi", "Society",
     "Dom Vicente", "Seu Maze", "Giac San", "Manu Doces", "Sabor da Casa", "Casa do Sushi",
   ].map(est),
-  counters: {}, daily: {}, notes: {},
+  counters: {}, daily: {}, notes: {}, archives: [],
 };
 
 export function useStore() {
@@ -51,7 +56,14 @@ export function useStore() {
     if (day[bId] === 0) delete day[bId];
     return d;
   });
-  const resetWeek = () => update((d) => ({ ...d, counters: {}, daily: {}, notes: {} }));
+  const resetWeek = () => update((d) => {
+    const hasHistory = Object.keys(d.daily).length > 0 || Object.keys(d.notes).length > 0;
+    const archives = hasHistory
+      ? [{ id: uid(), savedAt: today(), daily: d.daily, notes: d.notes }, ...(d.archives ?? [])]
+      : (d.archives ?? []);
+    return { ...d, counters: {}, daily: {}, notes: {}, archives };
+  });
+  const deleteArchive = (id: string) => update((d) => ({ ...d, archives: (d.archives ?? []).filter((a) => a.id !== id) }));
   const setNote = (estId: string, bId: string, text: string) => update((d) => {
     const n = ((d.notes[today()] ??= {})[estId] ??= {});
     if (text.trim()) n[bId] = text; else delete n[bId];
@@ -59,5 +71,5 @@ export function useStore() {
   });
   const setEstabs = (estabs: Estab[]) => update((d) => ({ ...d, estabs }));
 
-  return { data, change, resetWeek, setNote, setEstabs };
+  return { data, change, resetWeek, setNote, setEstabs, deleteArchive };
 }
