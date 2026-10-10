@@ -51,7 +51,7 @@ export function useStore() {
     if (day[bId] === 0) delete day[bId];
     return d;
   });
-  const resetWeek = () => update((d) => ({ ...d, counters: {} }));
+  const resetWeek = () => update((d) => ({ ...d, counters: {}, daily: {}, notes: {} }));
   const setNote = (estId: string, bId: string, text: string) => update((d) => {
     const n = ((d.notes[today()] ??= {})[estId] ??= {});
     if (text.trim()) n[bId] = text; else delete n[bId];

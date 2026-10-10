@@ -27,6 +27,7 @@ function Index() {
   const [resumo, setResumo] = useState<string | null>(null);
   const [note, setNoteOpen] = useState<{ est: string; b: string; name: string } | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [confirmReset, setConfirmReset] = useState(false);
 
   if (!data) return <div className="min-h-screen bg-background" />;
   const active = data.estabs.find((e) => e.id === tab)?.id ?? data.estabs[0]?.id ?? "";
