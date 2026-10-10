@@ -151,19 +151,20 @@ function ResumoDialog({ data, estId, onClose }: { data: Data; estId: string | nu
 }
 
 function ConfigDialog({ open, onClose, estabs, onSave }: { open: boolean; onClose: () => void; estabs: Estab[]; onSave: (e: Estab[]) => void }) {
-  const [draft, setDraft] = useState<Estab[]>([]);
   const [newEst, setNewEst] = useState("");
-  const edit = (fn: (d: Estab[]) => void) => setDraft((d) => { const c = structuredClone(d); fn(c); return c; });
+  // Edits apply instantly: every change is saved right away, no Save button needed.
+  const edit = (fn: (d: Estab[]) => void) => { const c = structuredClone(estabs); fn(c); onSave(c); };
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (o) setDraft(structuredClone(estabs)); else onClose(); }}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto" onOpenAutoFocus={() => setDraft(structuredClone(estabs))}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Configurações</DialogTitle></DialogHeader>
+        <p className="text-xs text-muted-foreground">Tudo é salvo automaticamente enquanto você digita.</p>
         <div className="flex gap-2">
           <Input placeholder="Novo estabelecimento" value={newEst} onChange={(e) => setNewEst(e.target.value)} />
           <Button onClick={() => { if (newEst.trim()) { edit((d) => d.push({ id: uid(), name: newEst.trim(), bairros: [] })); setNewEst(""); } }}><Plus /></Button>
         </div>
         <div className="space-y-4">
-          {draft.map((e, i) => (
+          {estabs.map((e, i) => (
             <div key={e.id} className="space-y-2 rounded-xl border bg-secondary p-3">
               <div className="flex gap-2">
                 <Input className="font-bold" value={e.name} onChange={(ev) => edit((d) => { d[i]!.name = ev.target.value; })} />
@@ -172,7 +173,7 @@ function ConfigDialog({ open, onClose, estabs, onSave }: { open: boolean; onClos
               {e.bairros.map((b, j) => (
                 <div key={b.id} className="flex gap-2">
                   <Input value={b.name} placeholder="Bairro" onChange={(ev) => edit((d) => { d[i]!.bairros[j]!.name = ev.target.value; })} />
-                  <Input className="w-24" type="number" inputMode="decimal" step="0.5" value={b.price}
+                  <Input className="w-24" type="number" inputMode="decimal" step="0.5" placeholder="0" value={b.price || ""}
                     onChange={(ev) => edit((d) => { d[i]!.bairros[j]!.price = Number(ev.target.value) || 0; })} />
                   <Button variant="ghost" size="icon" onClick={() => edit((d) => { d[i]!.bairros.splice(j, 1); })}><Trash2 /></Button>
                 </div>
@@ -181,7 +182,7 @@ function ConfigDialog({ open, onClose, estabs, onSave }: { open: boolean; onClos
             </div>
           ))}
         </div>
-        <DialogFooter><Button onClick={() => { onSave(draft); onClose(); }}>Salvar</Button></DialogFooter>
+        <DialogFooter><Button className="w-full" onClick={onClose}>Concluir</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
