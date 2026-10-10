@@ -225,7 +225,7 @@ function HistoryDialog({ open, onClose, estabs, archives, onDelete }: {
 }) {
   const [sel, setSel] = useState<string | null>(null);
   const [estId, setEstId] = useState("");
-  const [confirmDel, setConfirmDel] = useState(false);
+  const [delId, setDelId] = useState<string | null>(null);
   const active = estabs.find((x) => x.id === estId)?.id ?? estabs[0]?.id ?? "";
   const arc = archives.find((a) => a.id === sel) ?? null;
 
@@ -261,8 +261,7 @@ function HistoryDialog({ open, onClose, estabs, archives, onDelete }: {
                     <p className="text-xs text-muted-foreground">Toque para ver o resumo completo</p>
                   </button>
                   <Button variant="ghost" size="icon" aria-label="Apagar arquivo"
-                    onClick={() => setConfirmDel(true)}
-                    onFocus={() => { /* keep which archive this row points to */ }}>
+                    onClick={() => setDelId(a.id)}>
                     <Trash2 className="text-destructive" />
                   </Button>
                 </div>
