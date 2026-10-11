@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 
-export type Bairro = { id: string; name: string; price: number; region?: string };
+export type Bairro = { id: string; name: string; price: number; region?: string | undefined };
 export type Estab = { id: string; name: string; bairros: Bairro[] };
 type Daily = Record<string, Record<string, Record<string, number>>>;
 type Notes = Record<string, Record<string, Record<string, string>>>;
