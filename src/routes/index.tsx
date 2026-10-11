@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useStore, brl, fmtDate, today, uid, type Estab, type Data, type Archive } from "@/lib/store";
+import { useStore, brl, fmtDate, today, uid, REGION_ORDER, type Estab, type Data, type Archive } from "@/lib/store";
 
 // Days with any count or note for one establishment, newest first.
 const estDays = (daily: Data["daily"], notes: Data["notes"], estId: string) =>
@@ -103,23 +103,37 @@ function Index() {
                 </div>
                 <Button variant="secondary" onClick={() => setResumo(e.id)}><FileText className="h-4 w-4" />Resumo</Button>
               </div>
-              {e.bairros.map((b) => {
-                const c = data.counters[e.id]?.[b.id] ?? 0;
-                const hasNote = !!data.notes[today()]?.[e.id]?.[b.id];
+              {REGION_ORDER.concat("Outros").map((region) => {
+                const bs = e.bairros.filter((b) => (b.region ?? "Outros") === region);
+                if (bs.length === 0) return null;
                 return (
-                  <div key={b.id} className="flex items-center gap-3 rounded-2xl border bg-card p-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-bold">{b.name}</p>
-                      <p className="text-sm text-muted-foreground">{brl(b.price)} · <span className="text-success">{brl(c * b.price)}</span></p>
+                  <div key={region} className="space-y-2">
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="rounded-md bg-accent px-2 py-1 text-xs font-bold uppercase tracking-wide text-accent-foreground">
+                        {region}
+                      </span>
+                      <div className="h-px flex-1 bg-border" />
                     </div>
-                    <Button variant="ghost" size="icon" aria-label="Observações"
-                      className={hasNote ? "text-primary" : "text-muted-foreground"}
-                      onClick={() => { setNoteOpen({ est: e.id, b: b.id, name: b.name }); setNoteText(data.notes[today()]?.[e.id]?.[b.id] ?? ""); }}>
-                      <StickyNote className="h-5 w-5" />
-                    </Button>
-                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-full" onClick={() => change(e.id, b.id, -1)}><Minus /></Button>
-                    <span className="w-8 text-center text-xl font-extrabold tabular-nums">{c}</span>
-                    <Button size="icon" className="h-10 w-10 rounded-full" onClick={() => change(e.id, b.id, 1)}><Plus /></Button>
+                    {bs.map((b) => {
+                      const c = data.counters[e.id]?.[b.id] ?? 0;
+                      const hasNote = !!data.notes[today()]?.[e.id]?.[b.id];
+                      return (
+                        <div key={b.id} className="flex items-center gap-3 rounded-2xl border bg-card p-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-bold">{b.name}</p>
+                            <p className="text-sm text-muted-foreground">{brl(b.price)} · <span className="text-success">{brl(c * b.price)}</span></p>
+                          </div>
+                          <Button variant="ghost" size="icon" aria-label="Observações"
+                            className={hasNote ? "text-primary" : "text-muted-foreground"}
+                            onClick={() => { setNoteOpen({ est: e.id, b: b.id, name: b.name }); setNoteText(data.notes[today()]?.[e.id]?.[b.id] ?? ""); }}>
+                            <StickyNote className="h-5 w-5" />
+                          </Button>
+                          <Button variant="secondary" size="icon" className="h-10 w-10 rounded-full" onClick={() => change(e.id, b.id, -1)}><Minus /></Button>
+                          <span className="w-8 text-center text-xl font-extrabold tabular-nums">{c}</span>
+                          <Button size="icon" className="h-10 w-10 rounded-full" onClick={() => change(e.id, b.id, 1)}><Plus /></Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
