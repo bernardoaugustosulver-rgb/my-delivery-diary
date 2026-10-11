@@ -306,7 +306,7 @@ function HistoryDialog({ open, onClose, estabs, archives, onDelete }: {
   );
 }
 
-function ConfigDialog({ open, onClose, estabs, onSave }: { open: boolean; onClose: () => void; estabs: Estab[]; onSave: (e: Estab[]) => void }) {
+function ConfigDialog({ open, onClose, estabs, onSave, onOpenHistory }: { open: boolean; onClose: () => void; estabs: Estab[]; onSave: (e: Estab[]) => void; onOpenHistory: () => void }) {
   const [newEst, setNewEst] = useState("");
   // Edits apply instantly: every change is saved right away, no Save button needed.
   const edit = (fn: (d: Estab[]) => void) => { const c = structuredClone(estabs); fn(c); onSave(c); };
@@ -315,6 +315,10 @@ function ConfigDialog({ open, onClose, estabs, onSave }: { open: boolean; onClos
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Configurações</DialogTitle></DialogHeader>
         <p className="text-xs text-muted-foreground">Tudo é salvo automaticamente enquanto você digita.</p>
+        <Button variant="outline" className="justify-start" onClick={onOpenHistory}>
+          <History /> Consultar histórico anterior
+        </Button>
+        <p className="-mt-3 text-xs text-muted-foreground">Cada "Resetar Semana" guarda o resumo aqui até o próximo reset.</p>
         <div className="flex gap-2">
           <Input placeholder="Novo estabelecimento" value={newEst} onChange={(e) => setNewEst(e.target.value)} />
           <Button onClick={() => { if (newEst.trim()) { edit((d) => d.push({ id: uid(), name: newEst.trim(), bairros: [] })); setNewEst(""); } }}><Plus /></Button>
