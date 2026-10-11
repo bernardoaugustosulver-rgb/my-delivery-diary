@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useStore, brl, fmtDate, today, uid, type Estab, type Data, type Archive } from "@/lib/store";
+import { useStore, brl, fmtDate, today, uid, REGION_ORDER, type Estab, type Data, type Archive } from "@/lib/store";
 
 // Days with any count or note for one establishment, newest first.
 const estDays = (daily: Data["daily"], notes: Data["notes"], estId: string) =>
