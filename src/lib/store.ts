@@ -62,10 +62,17 @@ const defaultBairros = (): Bairro[] => DEFAULT_BAIRROS.map(([name, price, region
 
 const est = (name: string): Estab => ({ id: slug(name), name, bairros: defaultBairros() });
 
-// Preenche com os bairros padrão apenas as abas que ainda não têm nenhum bairro.
+// Preenche com os bairros padrão apenas as abas que ainda não têm nenhum bairro,
+// e classifiexistestes bairros salvos nas regiões (Jaraguá/Guaramirim/Schroeder).
 const withDefaults = (d: Data): Data => ({
   ...d,
-  estabs: d.estabs.map((e) => (e.bairros.length === 0 ? { ...e, bairros: defaultBairros() } : e)),
+  estabs: d.estabs.map((e) => ({
+    ...e,
+    bairros: (e.bairros.length === 0 ? defaultBairros() : e.bairros).map((b) => ({
+      ...b,
+      region: b.region ?? REGION_MAP.get(b.id) ?? REGION_MAP.get(slug(b.name)),
+    })),
+  })),
 });
 
 const seed: Data = {
