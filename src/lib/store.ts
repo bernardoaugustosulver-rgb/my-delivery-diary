@@ -75,7 +75,7 @@ export function useStore() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      setData(raw ? JSON.parse(raw) : seed);
+      setData(raw ? withDefaults(JSON.parse(raw)) : seed);
     } catch { setData(seed); }
   }, []);
   useEffect(() => { if (data) localStorage.setItem(KEY, JSON.stringify(data)); }, [data]);
