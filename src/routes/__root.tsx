@@ -85,11 +85,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Controle de entregas para motoboys por estabelecimento e bairro" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [
       { rel: "manifest", href: "/manifest.webmanifest" },
       { name: "theme-color", content: "#0F172A" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-    ],
-    links: [
       {
         rel: "stylesheet",
         href: appCss,
