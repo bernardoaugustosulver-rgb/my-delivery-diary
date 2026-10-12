@@ -13,6 +13,7 @@ export type Data = {
   daily: Daily;
   notes: Notes;
   archives?: Archive[];
+  schemaVersion?: number;
 };
 
 const KEY = "motoboy-data-v2";
@@ -58,22 +59,44 @@ const REGION_MAP = new Map(DEFAULT_BAIRROS.map(([name, , region]) => [slug(name)
 // Ordem fixa dos separadores; bairros fora dessas regiões ficam em "Outros".
 export const REGION_ORDER = ["Jaraguá do Sul", "Guaramirim", "Schroeder"];
 
+// Tabela de preços especial do estabelecimento "Sabor da Casa" (menor que o padrão).
+// Aplicada uma única vez pela migração abaixo; depois os valores podem ser ajustados na engrenagem.
+// Observação: "Molha" foi interpretado como "Barra do Rio Molha".
+const SABOR_DA_CASA_PRICES: Record<string, number> = {
+  "centro": 8, "vila-lenzi": 8, "lenzi": 8, "nova-brasilia": 8, "vila-baependi": 8, "baependi": 8,
+  "vila-nova": 8, "amizade": 10, "estrada-nova": 10, "rau": 10, "barra-do-rio-molha": 10, "molha": 10,
+  "vila-lalau": 10, "lalau": 10, "tifa-martins": 10, "chico-de-paulo": 10, "agua-verde": 10,
+  "czerniewicz": 10, "figueira": 12, "ilha-da-figueira": 12, "tres-rios-sul": 12,
+  "nereu-ramos": 15, "nereu": 15, "vieiras": 15, "vieras": 15, "joao-pessoa": 20,
+};
+const SCHEMA_VERSION = 3;
+
 const defaultBairros = (): Bairro[] => DEFAULT_BAIRROS.map(([name, price, region]) => ({ id: slug(name), name, price, region }));
 
 const est = (name: string): Estab => ({ id: slug(name), name, bairros: defaultBairros() });
 
 // Preenche com os bairros padrão apenas as abas que ainda não têm nenhum bairro,
 // e classificar bairros salvos nas regiões (Jaraguá/Guaramirim/Schroeder).
-const withDefaults = (d: Data): Data => ({
-  ...d,
-  estabs: d.estabs.map((e) => ({
-    ...e,
-    bairros: (e.bairros.length === 0 ? defaultBairros() : e.bairros).map((b) => ({
-      ...b,
-      region: b.region ?? REGION_MAP.get(b.id) ?? REGION_MAP.get(slug(b.name)),
-    })),
-  })),
-});
+const withDefaults = (d: Data): Data => {
+  const applySaborPrices = (d.schemaVersion ?? 0) < SCHEMA_VERSION;
+  return {
+    ...d,
+    schemaVersion: SCHEMA_VERSION,
+    estabs: d.estabs.map((e) => {
+      let bairros: Bairro[] = (e.bairros.length === 0 ? defaultBairros() : e.bairros).map((b) => ({
+        ...b,
+        region: b.region ?? REGION_MAP.get(b.id) ?? REGION_MAP.get(slug(b.name)),
+      }));
+      if (applySaborPrices && e.id === "sabor-da-casa") {
+        bairros = bairros.map((b) => {
+          const p = SABOR_DA_CASA_PRICES[b.id] ?? SABOR_DA_CASA_PRICES[slug(b.name)];
+          return p !== undefined ? { ...b, price: p } : b;
+        });
+      }
+      return { ...e, bairros };
+    }),
+  };
+};
 
 const seed: Data = {
   estabs: [
