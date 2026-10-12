@@ -25,7 +25,8 @@ const summaryText = (name: string, daily: Data["daily"], notes: Data["notes"], e
     const dayNotes = notes[d]?.[e.id] ?? {};
     const lines = Object.entries(counts).map(([bid, n]) => {
       const b = e.bairros.find((x) => x.id === bid);
-      return `${n}x ${b?.name ?? "Bairro removido"}`;
+      const v = (n * (b?.price ?? 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `${n}x ${b?.name ?? "Bairro removido"} ${v}`;
     });
     Object.entries(dayNotes).forEach(([bid, t]) => {
       const b = e.bairros.find((x) => x.id === bid);
