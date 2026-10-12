@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, Bike, MessageCircle, History, ArrowLeft } from "lucide-react";
+import { Minus, Plus, RotateCcw, Settings, FileText, StickyNote, Trash2, MessageCircle, History, ArrowLeft } from "lucide-react";
+import flashLogo from "@/assets/flash-logo.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -46,8 +47,12 @@ const summaryText = (name: string, daily: Data["daily"], notes: Data["notes"], e
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Motoboy Entregas — Controle por bairro" },
+      { title: "Flash Entregas — Controle por bairro" },
       { name: "description", content: "Conte entregas por estabelecimento e bairro, veja resumos diários e anotações." },
+      { property: "og:title", content: "Flash Entregas — Controle por bairro" },
+      { property: "og:description", content: "Conte entregas por estabelecimento e bairro, veja resumos diários e anotações." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "Motoboy Entregas" },
       { property: "og:description", content: "Controle de entregas para motoboys com resumo diário." },
     ],
@@ -75,7 +80,7 @@ function Index() {
     <div className="mx-auto min-h-screen max-w-xl bg-background px-4 pb-28 pt-5">
       <header className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="rounded-xl bg-primary p-2 text-primary-foreground"><Bike className="h-5 w-5" /></div>
+          <img src={flashLogo} alt="Flash Entregas" width={1024} height={1024} className="h-9 w-auto" />
           <h1 className="text-xl font-extrabold tracking-tight">Entregas</h1>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setCfg(true)} aria-label="Configurações">
