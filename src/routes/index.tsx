@@ -8,41 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useStore, brl, fmtDate, today, uid, REGION_ORDER, type Estab, type Data, type Archive } from "@/lib/store";
-
-// Days with any count or note for one establishment, newest first.
-const estDays = (daily: Data["daily"], notes: Data["notes"], estId: string) =>
-  Object.keys(daily)
-    .filter((d) => Object.keys(daily[d]?.[estId] ?? {}).length || Object.keys(notes[d]?.[estId] ?? {}).length)
-    .sort()
-    .reverse();
-
-// WhatsApp message: estab name, days descending, deliveries, notes, grand total.
-const summaryText = (name: string, daily: Data["daily"], notes: Data["notes"], e: Estab) => {
-  const days = estDays(daily, notes, e.id);
-  if (days.length === 0) return "";
-  let grandTotal = 0;
-  const parts = days.map((d) => {
-    const counts = daily[d]?.[e.id] ?? {};
-    const dayNotes = notes[d]?.[e.id] ?? {};
-    const lines = Object.entries(counts).map(([bid, n]) => {
-      const b = e.bairros.find((x) => x.id === bid);
-      const v = (n * (b?.price ?? 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      return `${n}x ${b?.name ?? "Bairro removido"} ${v}`;
-    });
-    Object.entries(dayNotes).forEach(([bid, t]) => {
-      const b = e.bairros.find((x) => x.id === bid);
-      lines.push(`📝 ${b?.name ?? "Bairro removido"}: ${t}`);
-    });
-    let total = 0;
-    Object.entries(counts).forEach(([bid, n]) => {
-      const b = e.bairros.find((x) => x.id === bid);
-      total += n * (b?.price ?? 0);
-    });
-    grandTotal += total;
-    return [fmtDate(d), ...lines].join("\n");
-  });
-  return [name, "", ...parts.flatMap((p, i) => (i > 0 ? ["----------", ...p.split("\n")] : p.split("\n"))), "", `Total = ${brl(grandTotal)}`].join("\n");
-};
+import { estDays, summaryText, summaryTotals } from "@/lib/summary";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -53,8 +19,6 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Conte entregas por estabelecimento e bairro, veja resumos diários e anotações." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Motoboy Entregas" },
-      { property: "og:description", content: "Controle de entregas para motoboys com resumo diário." },
     ],
   }),
   component: Index,
@@ -184,6 +148,7 @@ function Index() {
 // Day cards shared by the weekly Resumo and the archived history view.
 function DayList({ daily, notes, e, estId }: { daily: Data["daily"]; notes: Data["notes"]; e: Estab; estId: string }) {
   const days = estDays(daily, notes, estId);
+  const total = summaryTotals(daily, e);
   return (
     <div className="space-y-3">
       {days.map((d) => {
@@ -193,11 +158,11 @@ function DayList({ daily, notes, e, estId }: { daily: Data["daily"]; notes: Data
         const rows = Object.entries(counts).map(([bid, n]) => {
           const b = e.bairros.find((x) => x.id === bid);
           const v = n * (b?.price ?? 0); total += v;
-          return { bid, label: `${n}x ${b?.name ?? "Bairro removido"}`, v };
+          return { bid, label: `📍${n}x ${b?.name ?? "Bairro removido"}`, v };
         });
         return (
           <div key={d} className="rounded-xl border bg-secondary p-3">
-            <div className="mb-2 flex justify-between font-bold"><span>{fmtDate(d)}</span><span className="text-success">{brl(total)}</span></div>
+            <div className="mb-2 flex flex-wrap justify-between gap-2 font-bold"><span>{e.name} {fmtDate(d)}</span><span className="text-success">{brl(total)}</span></div>
             {rows.map((r) => (
               <div key={r.bid} className="flex justify-between text-sm"><span>{r.label}</span><span>{brl(r.v)}</span></div>
             ))}
@@ -207,6 +172,12 @@ function DayList({ daily, notes, e, estId }: { daily: Data["daily"]; notes: Data
           </div>
         );
       })}
+      {days.length > 0 && (
+        <div className="flex flex-wrap justify-between gap-2 border-t pt-3 font-bold">
+          <span>🛵 Entregas {total.deliveries}x</span>
+          <span className="text-success">💰 Total = {brl(total.value)}</span>
+        </div>
+      )}
     </div>
   );
 }
