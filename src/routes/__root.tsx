@@ -78,6 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "theme-color", content: "#0F172A" },
       { title: "Flash Entregas" },
       { name: "description", content: "Controle de entregas para motoboys por estabelecimento e bairro" },
       { name: "author", content: "Flash Entregas" },
@@ -88,7 +89,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { name: "theme-color", content: "#0F172A" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       {
         rel: "stylesheet",
