@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useStore, brl, fmtDate, today, uid, REGION_ORDER, type Estab, type Data, type Archive } from "@/lib/store";
 import { estDays, summaryText, summaryTotals } from "@/lib/summary";
+import { AuthGate } from "@/components/AuthGate";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,7 +22,11 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Index,
+  component: () => (
+    <AuthGate>
+      <Index />
+    </AuthGate>
+  ),
 });
 
 function Index() {
