@@ -40,8 +40,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
         password,
         options: { emailRedirectTo: window.location.origin },
       });
-      if (error) setMsg("Este e-mail não tem permissão para usar o app.");
-      else setMsg("Pronto! Confirme no link enviado para seu e-mail e depois entre.");
+      if (error) {
+        const m = error.message.toLowerCase();
+        if (m.includes("weak") || m.includes("easy to guess"))
+          setMsg("Essa senha é muito fraca ou já vazou na internet. Escolha uma senha mais forte (misture letras, números e símbolos).");
+        else if (m.includes("not allowed") || m.includes("permiss") || m.includes("authorized"))
+          setMsg("Este e-mail não tem permissão para usar o app.");
+        else setMsg("Não foi possível criar o acesso: " + error.message);
+      } else setMsg("Pronto! Confirme no link enviado para seu e-mail e depois entre.");
     }
     setBusy(false);
   };
