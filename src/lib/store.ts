@@ -127,13 +127,36 @@ const seed: Data = {
 
 export function useStore() {
   const [data, setData] = useState<Data | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [cloudReady, setCloudReady] = useState(false);
   useEffect(() => {
+    let local: Data;
     try {
       const raw = localStorage.getItem(KEY);
-      setData(withDefaults(raw ? JSON.parse(raw) : seed));
-    } catch { setData(withDefaults(seed)); }
+      local = withDefaults(raw ? JSON.parse(raw) : seed);
+    } catch { local = withDefaults(seed); }
+    setData(local);
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: u } = await supabase.auth.getUser();
+      const id = u.user?.id;
+      if (!id) return;
+      const { data: row } = await supabase.from("user_data").select("data").eq("user_id", id).maybeSingle();
+      const cloud = row?.data as unknown as Data | undefined;
+      if (cloud && Array.isArray(cloud.estabs) && cloud.estabs.length) setData(withDefaults(cloud));
+      setUserId(id);
+      setCloudReady(true);
+    })().catch(() => {});
   }, []);
   useEffect(() => { if (data) localStorage.setItem(KEY, JSON.stringify(data)); }, [data]);
+  useEffect(() => {
+    if (!data || !cloudReady || !userId) return;
+    const t = setTimeout(async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase.from("user_data").upsert({ user_id: userId, data: data as never, updated_at: new Date().toISOString() });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [data, cloudReady, userId]);
 
   const update = useCallback((fn: (d: Data) => Data) => setData((d) => (d ? fn(structuredClone(d)) : d)), []);
 
