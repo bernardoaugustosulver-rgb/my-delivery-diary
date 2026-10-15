@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Keep current and archived delivery summary formatting and totals in the shared browser-safe summary module so both views and WhatsApp use the same calculation.
+- Keep establishment-specific price tables in browser-safe data modules and apply versioned localStorage updates once, preserving existing neighborhood IDs and delivery records so later manual price edits remain intact.

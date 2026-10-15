@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { FLASH_CENTRO_ESTABS, FLASH_CENTRO_PRICES, FLASH_CENTRO_CITIES } from "./flash-centro-prices";
 
 export type Bairro = { id: string; name: string; price: number; region?: string | undefined };
 export type Estab = { id: string; name: string; bairros: Bairro[] };
@@ -57,7 +58,7 @@ const slug = (s: string) =>
 // Mapa nome → região para classificar bairros já salvos (sem região gravada).
 const REGION_MAP = new Map(DEFAULT_BAIRROS.map(([name, , region]) => [slug(name), region]));
 // Ordem fixa dos separadores; bairros fora dessas regiões ficam em "Outros".
-export const REGION_ORDER = ["Jaraguá do Sul", "Guaramirim", "Schroeder"];
+export const REGION_ORDER = ["Jaraguá do Sul", "Guaramirim", "Schroeder", "Cidades até centro"];
 
 // Tabela de preços especial do estabelecimento "Sabor da Casa" (menor que o padrão).
 // Aplicada uma única vez pela migração abaixo; depois os valores podem ser ajustados na engrenagem.
@@ -69,7 +70,7 @@ const SABOR_DA_CASA_PRICES: Record<string, number> = {
   "czerniewicz": 10, "figueira": 12, "ilha-da-figueira": 12, "tres-rios-sul": 12,
   "nereu-ramos": 15, "nereu": 15, "vieiras": 15, "vieras": 15, "joao-pessoa": 20,
 };
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 const defaultBairros = (): Bairro[] => DEFAULT_BAIRROS.map(([name, price, region]) => ({ id: slug(name), name, price, region }));
 
@@ -77,8 +78,9 @@ const est = (name: string): Estab => ({ id: slug(name), name, bairros: defaultBa
 
 // Preenche com os bairros padrão apenas as abas que ainda não têm nenhum bairro,
 // e classificar bairros salvos nas regiões (Jaraguá/Guaramirim/Schroeder).
-const withDefaults = (d: Data): Data => {
-  const applySaborPrices = (d.schemaVersion ?? 0) < SCHEMA_VERSION;
+export const withDefaults = (d: Data): Data => {
+  const applySaborPrices = (d.schemaVersion ?? 0) < 3;
+  const applyFlashPrices = (d.schemaVersion ?? 0) < 4;
   return {
     ...d,
     schemaVersion: SCHEMA_VERSION,
@@ -92,6 +94,23 @@ const withDefaults = (d: Data): Data => {
           const p = SABOR_DA_CASA_PRICES[b.id] ?? SABOR_DA_CASA_PRICES[slug(b.name)];
           return p !== undefined ? { ...b, price: p } : b;
         });
+      }
+      if (applyFlashPrices && (FLASH_CENTRO_ESTABS.has(e.id) || FLASH_CENTRO_ESTABS.has(slug(e.name)))) {
+        const table = [
+          ...defaultBairros().map((b) => ({ ...b, price: FLASH_CENTRO_PRICES[b.id] ?? b.price })),
+          ...FLASH_CENTRO_CITIES.map(([name, price]) => ({ id: slug(name), name, price, region: "Cidades até centro" })),
+        ];
+        const matched = new Set<string>();
+        bairros = bairros.map((b) => {
+          const row = table.find((r) => r.id === b.id || (
+            (slug(r.name) === slug(b.name) || slug(r.name.replace(/ \((Guaramirim|Schroeder)\)$/, "")) === slug(b.name))
+            && r.region === b.region
+          ));
+          if (!row) return b;
+          matched.add(row.id);
+          return { ...b, price: row.price, region: row.region };
+        });
+        bairros.push(...table.filter((b) => !matched.has(b.id)));
       }
       return { ...e, bairros };
     }),
@@ -111,8 +130,8 @@ export function useStore() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      setData(raw ? withDefaults(JSON.parse(raw)) : seed);
-    } catch { setData(seed); }
+      setData(withDefaults(raw ? JSON.parse(raw) : seed));
+    } catch { setData(withDefaults(seed)); }
   }, []);
   useEffect(() => { if (data) localStorage.setItem(KEY, JSON.stringify(data)); }, [data]);
 
